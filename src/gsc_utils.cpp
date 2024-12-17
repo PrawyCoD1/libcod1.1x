@@ -705,3 +705,17 @@ void gsc_utils_hash()
     stackPushString(hashed_str);
 }
 #endif
+
+void gsc_utils_sendservercommand() {
+	const char* cmd = Scr_GetString(0);
+	SV_SendServerCommand(NULL, 1, cmd);
+}
+
+void gsc_utils_seconds() {
+	Scr_AddInt(time(NULL));
+}
+
+void gsc_utils_printconsole() { //if this was a method the index would be the entity's number
+	const char* txt = Scr_GetString(0);
+	printf(txt);
+}

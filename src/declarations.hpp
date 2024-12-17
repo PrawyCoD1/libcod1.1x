@@ -44,6 +44,7 @@
 #define MAX_HUDELEMENTS             31
 #define MAX_HUDELEMS_ARCHIVAL       MAX_HUDELEMENTS
 #define MAX_HUDELEMS_CURRENT        MAX_HUDELEMENTS
+#define MAX_STRING_CHARS    1024 
 
 #define CVAR_NOFLAG             0               // 0
 #define CVAR_ARCHIVE            (1 << 0)        // 1
@@ -51,6 +52,7 @@
 #define CVAR_SYSTEMINFO         (1 << 3)        // 8
 #define CVAR_INIT               (1 << 4)        // 16
 #define CVAR_LATCH              (1 << 5)        // 32
+#define CVAR_ROM                (1 << 6)
 #define CVAR_CHEAT              (1 << 9)        // 512
 
 #define SVF_SINGLECLIENT 0x800
@@ -1262,3 +1264,6 @@ typedef struct customChallenge_s
     int ignoredCount;
 } customChallenge_t;
 ////
+
+#define XCL_PATCHPAK_BASENAME "____________________CoD1x_Redirect"
+#define XCL_PATCHPAK_MOD_BASENAME "CoD1x_RemoveMod"

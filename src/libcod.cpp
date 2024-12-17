@@ -3,6 +3,11 @@
 #include "cracking.hpp"
 #include "shared.hpp"
 
+static char xcl_patchpak_sum[256];
+static char xcl_patchpak_name[256];
+static char xcl_patchpak_mod_sum[256];
+static char xcl_patchpak_mod_name[256];
+
 // Stock cvars
 cvar_t *com_cl_running;
 cvar_t *com_dedicated;
@@ -51,6 +56,7 @@ cvar_t *player_sprint;
 cvar_t *player_sprintMinTime;
 cvar_t *player_sprintSpeedScale;
 cvar_t *player_sprintTime;
+cvar_t *x_patchclient;
 
 // Game lib objects
 gentity_t *g_entities;
@@ -81,6 +87,7 @@ Scr_GetString_t Scr_GetString;
 Scr_GetType_t Scr_GetType;
 Scr_GetEntity_t Scr_GetEntity;
 Scr_AddBool_t Scr_AddBool;
+Scr_GetBool_t Scr_GetBool;
 Scr_AddInt_t Scr_AddInt;
 Scr_AddFloat_t Scr_AddFloat;
 Scr_AddString_t Scr_AddString;
@@ -121,6 +128,8 @@ G_LocalizedStringIndex_t G_LocalizedStringIndex;
 trap_SetConfigstring_t trap_SetConfigstring;
 trap_GetArchivedPlayerState_t trap_GetArchivedPlayerState;
 G_Error_t G_Error;
+getuserinfo_t getuserinfo;
+setuserinfo_t setuserinfo;
 
 // Stock callbacks
 int codecallback_startgametype = 0;
@@ -254,6 +263,14 @@ void sendMessageTo_inGameAdmin_orServerConsole(client_t *cl, std::string message
     }
 }
 
+bool FS_IsClientUpdateFile(char* basename) {
+	if(strstr(basename, XCL_PATCHPAK_BASENAME) != NULL)
+		return 1;
+	if(strstr(basename, XCL_PATCHPAK_MOD_BASENAME) != NULL)
+		return 1;
+	return 0;
+}
+
 qboolean FS_svrPak(const char *base)
 {
     if(strstr(base, "_svr_"))
@@ -371,6 +388,16 @@ void custom_Com_Init(char *commandLine)
     sv_fastDownload = Cvar_Get("sv_fastDownload", "0", CVAR_ARCHIVE);
     sv_heartbeatDelay = Cvar_Get("sv_heartbeatDelay", "30", CVAR_ARCHIVE);
     sv_spectatorNoclip = Cvar_Get("sv_spectatorNoclip", "0", CVAR_ARCHIVE);
+
+    //1.1x patch
+    x_patchclient = Cvar_Get("x_patchclient", "1", 0);
+    Cvar_Get("x_patchcmd", "connect update.cod1x.eu", CVAR_SYSTEMINFO);
+	Cvar_Get("sv_x_referencedPaks", "", CVAR_SYSTEMINFO | CVAR_ROM);
+	Cvar_Get("sv_x_referencedPakNames", "", CVAR_SYSTEMINFO | CVAR_ROM);
+    	Com_sprintf(xcl_patchpak_name, sizeof(xcl_patchpak_name), "main/%s", XCL_PATCHPAK_BASENAME);
+	if(Cvar_VariableString("fs_game")[0] != '\0') {
+		Com_sprintf(xcl_patchpak_mod_name, sizeof(xcl_patchpak_mod_name), "%s/%s", Cvar_VariableString("fs_game"), XCL_PATCHPAK_MOD_BASENAME);
+	}
 }
 
 // See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/script.c#L944
@@ -437,12 +464,20 @@ const char* custom_FS_ReferencedPakNames(void)
     searchpath_t *search;
 
     info[0] = 0;
+
+    char fs_game[256];
+    char* check = Cvar_VariableString("fs_game");
+
+    if(check[0] == '\0')
+        sprintf(fs_game, "main");
+    else
+        sprintf(fs_game, check);
     
     for (search = fs_searchpaths; search; search = search->next)
     {
-        if(!search->pak)
-            continue;
-        if(FS_svrPak(search->pak->pakBasename))
+        if(search->pak) {
+
+        if(FS_svrPak(search->pak->pakBasename) || FS_IsClientUpdateFile(search->pak->pakBasename))
             continue;
 
         if(*info)
@@ -450,6 +485,7 @@ const char* custom_FS_ReferencedPakNames(void)
         Q_strcat(info, sizeof(info), search->pak->pakGamename);
         Q_strcat(info, sizeof(info), "/");
         Q_strcat(info, sizeof(info), search->pak->pakBasename);
+        }
     }
 
     return info;
@@ -462,14 +498,29 @@ const char* custom_FS_ReferencedPakChecksums(void)
     
     info[0] = 0;
 
+    char fs_game[256];
+    char* check = Cvar_VariableString("fs_game");
+
+    if(check[0] == '\0')
+        sprintf(fs_game, "main");
+    else
+        sprintf(fs_game, check);
+
     for (search = fs_searchpaths; search; search = search->next)
     {
-        if(!search->pak)
-            continue;
-        if(FS_svrPak(search->pak->pakBasename))
+        if(search->pak) {
+
+            if(!strcasecmp(search->pak->pakBasename, XCL_PATCHPAK_BASENAME)) {
+                Com_sprintf(xcl_patchpak_sum, sizeof(xcl_patchpak_sum), "%d", search->pak->checksum);
+            } else if(!strcasecmp(search->pak->pakGamename, fs_game) && !strcasecmp(search->pak->pakBasename, XCL_PATCHPAK_MOD_BASENAME)) {
+                Com_sprintf(xcl_patchpak_mod_sum, sizeof(xcl_patchpak_mod_sum), "%d", search->pak->checksum);
+            }
+
+        if(FS_svrPak(search->pak->pakBasename) || FS_IsClientUpdateFile(search->pak->pakBasename))
             continue;
         
         Q_strcat(info, sizeof(info), va("%i ", search->pak->checksum));
+        }
     }
 
     return info;
@@ -2646,6 +2697,29 @@ void UCMD_custom_sprint(client_t *cl)
     else
         customPlayerState[clientNum].sprintRequestPending = true;
 }
+void hook_SV_PatchReferencedPakSums(const char* name, const char* value) {
+	if(x_patchclient->integer) {
+		Cvar_Set2("sv_x_referencedPaks", value, qtrue);
+
+		char paks[1024];
+		Com_sprintf(paks, sizeof(paks), "%s %s", xcl_patchpak_sum, xcl_patchpak_mod_sum);
+		Cvar_Set2("sv_referencedPaks", paks, qtrue);
+	} else {
+		Cvar_Set2("sv_referencedPaks", value, qtrue);
+	}
+}
+
+void hook_SV_PatchReferencedPakNames(const char* name, const char* value) {
+	if(x_patchclient->integer) {
+		Cvar_Set2("sv_x_referencedPakNames", value, qtrue);
+
+		char pakn[1024];
+		Com_sprintf(pakn, sizeof(pakn), "%s %s", xcl_patchpak_name, xcl_patchpak_mod_name);
+		Cvar_Set2("sv_referencedPakNames", pakn, qtrue);
+	} else {
+		Cvar_Set2("sv_referencedPakNames", value, qtrue);
+	}
+}
 
 void ServerCrash(int sig)
 {
@@ -2671,6 +2745,17 @@ void ServerCrash(int sig)
     
     system("stty sane");
     exit(1);
+}
+
+void SV_DoneDownload( client_t *cl ) {
+	if(x_patchclient->integer) {
+		if(!strlen(Info_ValueForKey(cl->userinfo, "xtndedbuild"))) {
+			NET_OutOfBandPrint(NS_SERVER, cl->netchan.remoteAddress, "error\n%s\n", "Call of Duty Extended\n\nTo update to newest CoD 1x, please write in console:\nconnect update.cod1x.eu\n\nEnjoy!");
+			return;
+		}
+	}
+
+	SV_DoneDownload_f(cl);
 }
 
 void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int, ...), int (*systemcalls)(int, ...))
@@ -2754,6 +2839,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Scr_GetType = (Scr_GetType_t)dlsym(libHandle, "Scr_GetType");
     Scr_GetEntity = (Scr_GetEntity_t)dlsym(libHandle, "Scr_GetEntity");
     Scr_AddBool = (Scr_AddBool_t)dlsym(libHandle, "Scr_AddBool");
+    Scr_GetBool = (Scr_GetBool_t)dlsym(libHandle, "Scr_GetBool");
     Scr_AddInt = (Scr_AddInt_t)dlsym(libHandle, "Scr_AddInt");
     Scr_AddFloat = (Scr_AddFloat_t)dlsym(libHandle, "Scr_AddFloat");
     Scr_AddString = (Scr_AddString_t)dlsym(libHandle, "Scr_AddString");
@@ -2888,6 +2974,8 @@ class libcod
         hook_call(0x0808c74e, (int)hook_SVC_Info);
         hook_call(0x0808c71c, (int)hook_SVC_Status);
         hook_call(0x0808c81d, (int)hook_SVC_RemoteCommand);
+	    hook_call(0x0808A877, (int)hook_SV_PatchReferencedPakSums);
+	    hook_call(0x0808A88C, (int)hook_SV_PatchReferencedPakNames);
 
         hook_jmp(0x080717a4, (int)custom_FS_ReferencedPakChecksums);
         hook_jmp(0x080716cc, (int)custom_FS_ReferencedPakNames);
@@ -2913,6 +3001,9 @@ class libcod
         hook_SV_AddOperatorCommands->hook();
         hook_SV_BotUserMove = new cHook(0x0808cccc, (int)custom_SV_BotUserMove);
         hook_SV_BotUserMove->hook();
+
+        getuserinfo = (getuserinfo_t)0x808B25C;
+        setuserinfo = (setuserinfo_t)0x808B1D0;
 
         printf("Loading complete\n");
         printf("--------------------------------\n");

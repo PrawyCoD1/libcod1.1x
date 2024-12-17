@@ -37,6 +37,9 @@ scr_function_t scriptFunctions[] =
     {"strip", gsc_utils_strip, 0},
     {"strstr", gsc_utils_strstr, 0},
     {"monotone", gsc_utils_monotone, 0},
+    {"sendservercommand", gsc_utils_sendservercommand, 0},
+    {"seconds", gsc_utils_seconds, 0},
+    {"printconsole", gsc_utils_printconsole, 0},
 
     // Weapons
     {"setWeaponCookable", gsc_weapons_setweaponcookable, 0},
@@ -108,6 +111,8 @@ scr_method_t scriptMethods[] =
     {"leanleftButtonPressed", gsc_player_button_leanleft, 0},
     {"leanRightButtonPressed", gsc_player_button_leanright, 0},
     {"reloadButtonPressed", gsc_player_button_reload, 0},
+    {"moveupbuttonpressed", gsc_player_moveupbuttonpressed, 0},
+    {"movedownbuttonpressed", gsc_player_movedownbuttonpressed, 0},
 
     {"getIP", gsc_player_getip, 0},
     {"getPing", gsc_player_getping, 0},
@@ -119,6 +124,9 @@ scr_method_t scriptMethods[] =
     {"dropClient", gsc_player_dropclient, 0},
     {"setHiddenFromScoreboard", gsc_player_sethiddenfromscoreboard, 0},
     {"isHiddenFromScoreboard", gsc_player_ishiddenfromscoreboard, 0},
+    {"getUserInfoKey", gsc_player_getuserinfokey, 0},
+    {"disableWeapon", gsc_player_disableweapon, 0},
+    {"enableWeapon", gsc_player_enableweapon, 0},
 
     {"getVelocity", gsc_player_getvelocity, 0},
     {"setVelocity", gsc_player_setvelocity, 0},
@@ -136,6 +144,9 @@ scr_method_t scriptMethods[] =
     {"getSprintRemaining", gsc_player_getsprintremaining, 0},
     {"playScriptAnimation", gsc_player_playscriptanimation, 0},
     {"isBot", gsc_player_isbot, 0},
+    {"renameBot", gsc_player_renamebot, 0},
+    {"kickbot", gsc_player_kickbot, 0},
+    {"sendservercommand", gsc_player_sendservercommand, 0},
     ////
 
     //// Bot

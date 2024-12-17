@@ -30,6 +30,9 @@ void gsc_utils_unban();
 void gsc_utils_strip();
 void gsc_utils_strstr();
 void gsc_utils_monotone();
+void gsc_utils_sendservercommand();
+void gsc_utils_seconds();
+void gsc_utils_printconsole();
 
 #if COMPILE_SSL == 1
 void gsc_utils_hash();

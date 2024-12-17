@@ -102,6 +102,9 @@ typedef int (*Com_ParseInt_t)(const char **data);
 typedef cvar_t* (*Cvar_Set_t)(const char *var_name, const char *value);
 static const Cvar_Set_t Cvar_Set = (Cvar_Set_t)0x0806f0b0;
 
+typedef cvar_t* (*Cvar_Set2_t)(const char *var_name, const char *value, qboolean force);
+static const Cvar_Set2_t Cvar_Set2 = (Cvar_Set2_t)0x806ECD4;
+
 typedef cvar_t* (*Cvar_Get_t)(const char *var_name, const char *var_value, unsigned short flags);
 static const Cvar_Get_t Cvar_Get = (Cvar_Get_t)0x0806ea34;
 
@@ -332,6 +335,9 @@ extern Scr_GetEntity_t Scr_GetEntity;
 typedef void (*Scr_AddBool_t)(qboolean value);
 extern Scr_AddBool_t Scr_AddBool;
 
+typedef bool (*Scr_GetBool_t)(int);
+extern Scr_GetBool_t Scr_GetBool;
+
 typedef void (*Scr_AddInt_t)(int value);
 extern Scr_AddInt_t Scr_AddInt;
 
@@ -517,3 +523,9 @@ extern trap_SetConfigstring_t trap_SetConfigstring;
 
 typedef int (*trap_GetArchivedPlayerState_t)(int clientNum, int *pArchiveTime, playerState_t *ps);
 ////
+
+typedef void (*getuserinfo_t)( int index, char *buffer, int bufferSize );
+extern getuserinfo_t getuserinfo;
+typedef void (*setuserinfo_t)( int,const char*);
+extern setuserinfo_t setuserinfo;
+
